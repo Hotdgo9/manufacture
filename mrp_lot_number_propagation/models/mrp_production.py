@@ -2,7 +2,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
 
 
-from odoo import _, api, fields, models, tools
+from odoo import api, fields, models, tools
 from odoo.exceptions import UserError
 
 
@@ -75,7 +75,7 @@ class MrpProduction(models.Model):
             )
             if not propagate_move:
                 raise UserError(
-                    _(
+                    self.env._(
                         "Bill of material is marked for lot number propagation, but "
                         "there are no components propagating lot number. "
                         "Please check BOM configuration."
@@ -83,7 +83,7 @@ class MrpProduction(models.Model):
                 )
             elif len(propagate_move) > 1:
                 raise UserError(
-                    _(
+                    self.env._(
                         "Bill of material is marked for lot number propagation, but "
                         "there are multiple components propagating lot number. "
                         "Please check BOM configuration."
@@ -116,7 +116,7 @@ class MrpProduction(models.Model):
                 )
                 if lot.quant_ids:
                     raise UserError(
-                        _(
+                        self.env._(
                             "Lot/Serial number %s already exists and has been used. "
                             "Unable to propagate it."
                         )
@@ -139,38 +139,9 @@ class MrpProduction(models.Model):
                 and not self.env.context.get("lot_propagation")
             ):
                 raise UserError(
-                    _(
+                    self.env._(
                         "Lot/Serial number is propagated from a component, "
                         "you are not allowed to change it."
                     )
                 )
         return super().write(vals)
-
-    @api.model
-    def _get_view(self, view_id=None, view_type="form", **options):
-        # Override to hide the "lot_producing_id" field + "action_generate_serial"
-        # button if the MO is configured to propagate a serial number
-        arch, view = super()._get_view(view_id, view_type, **options)
-        if view.name in self._views_to_adapt():
-            arch = self._fields_view_get_adapt_lot_tags_attrs(arch)
-        return arch, view
-
-    def _views_to_adapt(self):
-        """Return the form view names bound to 'mrp.production' to adapt."""
-        return ["mrp.production.form"]
-
-    def _fields_view_get_adapt_lot_tags_attrs(self, arch):
-        """Hide elements related to lot if it is automatically propagated."""
-
-        for node in arch.xpath(
-            "//label[@for='lot_producing_id']"
-            "|//field[@name='lot_producing_id']/.."  # parent <div>
-        ):
-            attr_invisible = node.attrib.get("invisible", "")
-            if not attr_invisible:
-                node.attrib["invisible"] = "is_lot_number_propagated"
-            else:
-                node.attrib["invisible"] = (
-                    node.attrib["invisible"] + " or is_lot_number_propagated"
-                )
-        return arch

@@ -11,14 +11,12 @@
                 expr="//field[@name='company_id' and not(@invisible='1')]"
                 position="after"
             >
-                <field name="display_lot_number_propagation" invisible="1" />
                 <field
                     name="lot_number_propagation"
                     invisible="not display_lot_number_propagation"
                 />
             </xpath>
-            <xpath expr="//field[@name='bom_line_ids']/tree" position="inside">
-                <field name="display_propagate_lot_number" invisible="1" />
+            <xpath expr="//field[@name='bom_line_ids']/list" position="inside">
                 <field
                     name="propagate_lot_number"
                     column_invisible="not parent.display_lot_number_propagation or not parent.lot_number_propagation"

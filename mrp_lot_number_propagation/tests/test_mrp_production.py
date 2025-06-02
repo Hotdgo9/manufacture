@@ -3,7 +3,7 @@
 
 from odoo.exceptions import UserError
 from odoo.fields import Command
-from odoo.tests.common import Form
+from odoo.tests import Form
 
 from .common import Common
 
