@@ -12,8 +12,11 @@
     "category": "Manufacturing",
     "depends": ["mrp"],
     "data": [
+        "security/ir.model.access.csv",
         "views/mrp_bom.xml",
         "views/mrp_production.xml",
+        "wizard/mrp_batch_produce_propagate.xml",
+        "wizard/mrp_batch_produce.xml",
     ],
     "installable": True,
     "application": False,
