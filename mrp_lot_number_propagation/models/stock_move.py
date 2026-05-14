@@ -23,13 +23,18 @@ class StockMove(models.Model):
         #  the removed propagating component, so we must remove the outdated finished
         #  lot
         for move in self:
-            finished_lot = move.raw_material_production_id.lot_producing_id
+            finished_lot = move.raw_material_production_id.lot_producing_ids[:1]
             if (
                 move.propagate_lot_number
                 and finished_lot
                 and len(move.move_line_ids) == 1
                 and move.move_line_ids.lot_id.name != finished_lot.name
             ):
-                move.raw_material_production_id.write({"lot_producing_id": False})
+                # Pass lot_propagation context so the mrp.production.write
+                # guard permits this internal clear; this is the propagation
+                # logic itself, not an external user action.
+                move.raw_material_production_id.with_context(
+                    lot_propagation=True
+                ).lot_producing_ids = [fields.Command.clear()]
                 if not finished_lot.quant_ids:
                     finished_lot.unlink()

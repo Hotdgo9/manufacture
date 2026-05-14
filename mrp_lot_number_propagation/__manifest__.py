@@ -2,7 +2,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
 {
     "name": "MRP Serial Number Propagation",
-    "version": "18.0.1.1.2",
+    "version": "19.0.1.0.0",
     "development_status": "Beta",
     "license": "AGPL-3",
     "author": "Camptocamp, Odoo Community Association (OCA)",
@@ -15,8 +15,8 @@
         "security/ir.model.access.csv",
         "views/mrp_bom.xml",
         "views/mrp_production.xml",
-        "wizard/mrp_batch_produce_propagate.xml",
-        "wizard/mrp_batch_produce.xml",
+        "wizard/mrp_production_serials.xml",
+        "wizard/mrp_production_serials_propagate.xml",
     ],
     "installable": True,
     "application": False,

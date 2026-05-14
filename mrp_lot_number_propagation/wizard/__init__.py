@@ -1,2 +1,2 @@
-from . import mrp_batch_produce_propagate
-from . import mrp_batch_produce
+from . import mrp_production_serials
+from . import mrp_production_serials_propagate

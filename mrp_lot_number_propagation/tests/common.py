@@ -1,4 +1,5 @@
 # Copyright 2022 Camptocamp SA
+# Copyright 2026 Hotdgo9 (19.0 migration)
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
 
 import random
@@ -13,29 +14,99 @@ class Common(common.TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
-        cls.bom = cls.env.ref("mrp.mrp_bom_desk")
-        cls.bom_product_template = cls.env.ref(
-            "mrp.product_product_computer_desk_product_template"
+
+        # Inline fixtures (replace mrp.* demo refs to support --without-demo=True).
+        category = cls.env.ref("product.product_category_goods")
+        cls.bom_product_template = cls.env["product.template"].create(
+            {
+                "name": "Test finished product",
+                "is_storable": True,
+                "tracking": "serial",
+                "categ_id": category.id,
+            }
         )
-        cls.bom_product_product = cls.env.ref("mrp.product_product_computer_desk")
-        cls.product_tracked_by_lot = cls.env.ref(
-            "mrp.product_product_computer_desk_leg"
+        cls.bom_product_product = cls.bom_product_template.product_variant_id
+        cls.product_tracked_by_sn = cls.env["product.product"].create(
+            {
+                "name": "Test SN component",
+                "is_storable": True,
+                "tracking": "serial",
+                "categ_id": category.id,
+            }
         )
-        cls.product_tracked_by_sn = cls.env.ref(
-            "mrp.product_product_computer_desk_head"
+        cls.product_template_tracked_by_sn = cls.product_tracked_by_sn.product_tmpl_id
+        cls.product_tracked_by_lot = cls.env["product.product"].create(
+            {
+                "name": "Test lot component",
+                "is_storable": True,
+                "tracking": "lot",
+                "categ_id": category.id,
+            }
         )
-        cls.product_template_tracked_by_sn = cls.env.ref(
-            "mrp.product_product_computer_desk_head_product_template"
+        cls.product_no_tracking = cls.env["product.product"].create(
+            {
+                "name": "Test non-tracked component",
+                "is_storable": True,
+                "tracking": "none",
+                "categ_id": category.id,
+            }
         )
-        cls.LOT_NAME = cls.env.ref("mrp.lot_product_product_computer_desk_head_1").name
+
+        cls.bom = cls.env["mrp.bom"].create(
+            {
+                "product_tmpl_id": cls.bom_product_template.id,
+                "product_qty": 1.0,
+                "type": "normal",
+                "bom_line_ids": [
+                    fields.Command.create(
+                        {
+                            "product_id": cls.product_tracked_by_sn.id,
+                            "product_qty": 1.0,
+                        }
+                    ),
+                    fields.Command.create(
+                        {
+                            "product_id": cls.product_tracked_by_lot.id,
+                            "product_qty": 1.0,
+                        }
+                    ),
+                    fields.Command.create(
+                        {
+                            "product_id": cls.product_no_tracking.id,
+                            "product_qty": 1.0,
+                        }
+                    ),
+                ],
+            }
+        )
+
+        cls.LOT_NAME = "TEST-SN-001"
+        cls.named_lot = cls.env["stock.lot"].create(
+            {
+                "name": cls.LOT_NAME,
+                "product_id": cls.product_tracked_by_sn.id,
+                "company_id": cls.env.company.id,
+            }
+        )
+
         cls.line_tracked_by_lot = cls.bom.bom_line_ids.filtered(
             lambda o: o.product_id == cls.product_tracked_by_lot
         )
         cls.line_tracked_by_sn = cls.bom.bom_line_ids.filtered(
             lambda o: o.product_id == cls.product_tracked_by_sn
         )
-        cls.line_no_tracking = fields.first(
-            cls.bom.bom_line_ids.filtered(lambda o: o.product_id.tracking == "none")
+        cls.line_no_tracking = cls.bom.bom_line_ids.filtered(
+            lambda o: o.product_id.tracking == "none"
+        )[:1]
+
+        # Pre-load inventory for the SN component with our named lot so that
+        # tests can rely on cls.LOT_NAME being the lot reserved by action_confirm.
+        stock_location = cls.env.ref("stock.stock_location_stock")
+        cls._update_qty_in_location(
+            stock_location,
+            cls.product_tracked_by_sn,
+            1.0,
+            lot=cls.named_lot,
         )
 
     @classmethod
@@ -65,7 +136,7 @@ class Common(common.TransactionCase):
         if not location:
             location = cls.env.ref("stock.stock_location_stock")
         for line in bom.bom_line_ids:
-            if line.product_id.type != "product":
+            if not line.product_id.is_storable:
                 continue
             lot = None
             if line.product_id.tracking != "none":

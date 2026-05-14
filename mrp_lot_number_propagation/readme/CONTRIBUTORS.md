@@ -1,2 +1,3 @@
 - Akim Juillerat \<<akim.juillerat@camptocamp.com>\>
 - Sébastien Alix \<<sebastien.alix@camptocamp.com>\>
+- [@Hotdgo9](https://github.com/Hotdgo9)
